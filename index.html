@@ -25,7 +25,7 @@
             flex-direction: column;
             height: calc(100vh - 2rem); /* Full height minus padding */
             width: 100%;
-            max-width: 1200px; /* Wider max-width for side-by-side */
+            /* Removed max-width to allow full width usage */
             background-color: #ffffff;
             border: 1px solid #d1d5db; /* Border like UCAT */
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -78,7 +78,7 @@
             border: 2px solid #3b82f6 !important; /* Tailwind blue-500 */
             font-weight: bold;
         }
-        /* Modal Styles (unchanged) */
+        /* Modal Styles */
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
         .modal-content { background-color: #fefefe; margin: auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; border-radius: 0.5rem; }
         .modal.flex { display: flex; }
@@ -91,6 +91,7 @@
             font-size: 0.875rem; /* Slightly smaller text */
             font-weight: 500;
             box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            cursor: pointer; /* Ensure pointer cursor */
         }
         button:active, .button:active { transform: scale(0.98); }
         button:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -123,12 +124,20 @@
         /* Hide actual radio buttons */
         input[type="radio"] { display: none; }
 
+        /* Style for clickable result items */
+        .result-item {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .result-item:hover {
+            background-color: rgba(0, 0, 0, 0.03); /* Slight hover effect */
+        }
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             #app-container {
                  height: auto; /* Allow height to adjust */
                  margin: 0.5rem;
-                 max-width: 100%;
             }
             .main-content-area {
                 flex-direction: column; /* Stack columns */
@@ -150,10 +159,12 @@
             button, .button {
                 padding: 0.4rem 0.8rem;
             }
-            .grid-cols-5 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .grid-cols-5 { grid-template-columns: repeat(4, minmax(0, 1fr)); } /* Navigator grid adjustment */
+            #review-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } /* Review grid adjustment */
         }
          @media (max-width: 480px) {
-             .grid-cols-5 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+             .grid-cols-5 { grid-template-columns: repeat(3, minmax(0, 1fr)); } /* Navigator grid adjustment */
+             #review-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } /* Review grid adjustment */
              .header-bar span, .footer-bar button { font-size: 0.75rem; }
              button, .button { padding: 0.3rem 0.6rem; }
              .option-label { padding: 0.5rem 0.75rem; font-size: 0.8rem;}
@@ -200,11 +211,11 @@
 
         <div id="exam-screen" class="hidden flex flex-col h-full">
             <div class="header-bar">
-                <span class="font-semibold text-gray-700">Verbal Reasoning</span>
-                <div class="flex items-center space-x-4">
+                <span id="exam-title" class="font-semibold text-gray-700">Verbal Reasoning</span> <div class="flex items-center space-x-4">
                     <div id="timer" class="text-base font-semibold text-red-600 bg-red-100 px-3 py-1 rounded-md">12:00</div>
                     <span class="text-sm text-gray-600">Question <span id="question-number-info">1</span> of 20</span>
-                    <button id="flag-button" class="subtle-button text-sm">Flag for Review</button> </div>
+                    <button id="flag-button" class="subtle-button text-sm">Flag for Review</button>
+                </div>
             </div>
 
             <div class="main-content-area">
@@ -224,9 +235,9 @@
             </div>
 
             <div class="footer-bar">
+                 <button id="back-to-results-button" class="secondary-button hidden mr-auto">← Back to Results</button>
                  <button id="end-exam-button-footer" class="secondary-button">End Exam</button>
-                 <div class="flex items-center space-x-2">
-                     <button id="prev-button" class="secondary-button" disabled>← Previous (Alt+P)</button>
+                 <div class="flex items-center space-x-2 ml-auto"> <button id="prev-button" class="secondary-button" disabled>← Previous (Alt+P)</button>
                      <button id="navigator-button" class="subtle-button">Navigator</button>
                      <button id="next-button" class="primary-button">Next (Alt+N) →</button>
                  </div>
@@ -236,9 +247,9 @@
         <div id="review-screen" class="hidden p-6 md:p-8 flex flex-col items-center h-full overflow-y-auto">
             <h2 class="text-2xl font-bold mb-4 text-center text-blue-600">Review Your Answers</h2>
             <p class="text-center text-gray-600 mb-6">Click on a question number to review and change your answer.</p>
-            <div id="review-grid" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-10 gap-3 mb-6 w-full max-w-2xl">
-                </div>
-            <div class="mt-auto pt-6"> <button id="end-exam-button" class="danger-button text-lg px-8 py-3">
+            <div id="review-grid" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-10 gap-3 mb-6 w-full max-w-3xl"> </div>
+            <div class="mt-auto pt-6">
+                <button id="end-exam-button" class="danger-button text-lg px-8 py-3">
                     End Exam & See Results
                 </button>
             </div>
@@ -253,10 +264,11 @@
                  <h2 class="text-2xl md:text-3xl font-bold text-blue-600">Exam Results</h2>
              </div>
             <div class="bg-blue-50 p-4 rounded-lg mb-6 text-center flex-shrink-0">
-                 <p class="text-lg font-semibold">Your Score: <span id="score" class="text-blue-700">0</span> / 20</p>
+                 <p class="text-lg font-semibold">Your Score: <span id="score" class="text-blue-700">0</span> / <span id="total-questions-results">20</span></p>
                  <p class="text-gray-600">Time Taken: <span id="time-taken"></span></p>
             </div>
-            <h3 class="text-xl font-semibold mb-4 flex-shrink-0">Detailed Results:</h3>
+            <h3 class="text-xl font-semibold mb-2 flex-shrink-0">Detailed Results:</h3>
+            <p class="text-sm text-gray-500 mb-4 flex-shrink-0">Click on a question below to review it.</p>
             <div id="results-details" class="space-y-3 overflow-y-auto flex-grow pr-2">
                 </div>
              <div class="mt-6 text-center flex-shrink-0 border-t pt-4">
@@ -294,7 +306,7 @@
             // Passage 5: RADAR
             `The rapid development and increasingly sophisticated deployment of Radio Detection and Ranging (RADAR) technology emerged as a critical, often highly classified, factor profoundly influencing the strategic and tactical course, and arguably the ultimate outcome, of World War II. While the fundamental scientific principles were explored concurrently in several countries during the pre-war years, Britain's acute vulnerability and urgent need for effective early warning against anticipated German aerial bombardment spurred exceptionally rapid, state-sponsored development efforts. By the outbreak of war in 1939, the coastal Chain Home system - a network of large, fixed transmitter and receiver towers - provided crucial, albeit relatively low-resolution, detection of incoming Luftwaffe aircraft formations over the English Channel. This system played an undeniably vital strategic role during the Battle of Britain in the summer of 1940, enabling the numerically inferior RAF Fighter Command to efficiently vector its limited fighter squadrons to intercept German raids, thereby conserving precious aircraft and experienced pilots.\n\nHowever, the early Chain Home system operated at longer metric wavelengths, necessitating massive antennae installations and suffering from limitations in accuracy, altitude determination, and an inability to detect low-flying aircraft effectively. The truly pivotal technological breakthrough was the essentially independent British invention of the resonant cavity magnetron at the University of Birmingham in early 1940 by physicists John Randall and Harry Boot. This remarkably compact device could generate unprecedented levels of high-power microwave pulses at much shorter centimetric wavelengths than previously achievable. This critical innovation enabled the practical construction of powerful radar sets small and light enough to be installed effectively in aircraft and ships for the first time. Recognizing its immense military potential, the magnetron technology was crucially shared with the scientifically and industrially powerful United States through the highly secret Tizard Mission later in 1940. It rapidly became the technological heart of numerous advanced Allied radar systems developed with great urgency at institutions like the MIT Radiation Laboratory (Rad Lab).\n\nAirborne microwave radar, powered by the magnetron, proceeded to revolutionize several key aspects of WWII aerial and naval warfare. Compact airborne interception (Al) radar allowed Allied night fighters to finally locate and effectively engage German bombers attacking Britain under cover of darkness, significantly blunting the Blitz. Critically, maritime patrol aircraft like the Consolidated B-24 Liberator, equipped with air-to-surface-vessel (ASV) radar, could reliably detect surfaced German U-boats far out in the vast Atlantic, even at night or in fog and poor visibility. This capability proved instrumental in dramatically undermining the devastating submarine threat to vital Allied shipping convoys, arguably turning the tide in the Battle of the Atlantic. Furthermore, airborne radar navigation and bombing aids like H2S (using a plan position indicator display) allowed Allied heavy bombers to identify target cities and drop ordnance with significantly improved accuracy through dense cloud cover or darkness during the escalating strategic bombing campaign against industrial targets within Germany. While Axis powers, notably Germany and Japan, also developed and deployed their own radar systems (often sophisticated but hampered by competing priorities or later access to microwave technology), the decisive Allied technological lead, particularly in versatile microwave applications spearheaded by the magnetron, provided a significant and sustained operational advantage throughout much of the conflict, profoundly impacting the effectiveness of air defence, anti-submarine warfare, and strategic bombardment operations.`
         ];
-        const questions = [
+        const questions = [ // Questions data remains the same
             { passageIndex: 0, text: "NVIDIA'S CUDA platform was initially developed to enhance the visual performance of its GeForce gaming GPUs.", options: ["True", "False", "Can't Tell"], answer: "B" },
             { passageIndex: 0, text: "The passage suggests NVIDIA's acquisition of Mellanox was primarily aimed at strengthening its position in the mobile computing market.", options: ["True", "False", "Can't Tell"], answer: "C" },
             { passageIndex: 0, text: "NVIDIA's financial growth in the early 2020s was driven more significantly by its professional RTX GPU sales than by its data center segment.", options: ["True", "False", "Can't Tell"], answer: "B" },
@@ -317,7 +329,7 @@
             { passageIndex: 4, text: "Which statement constitutes the most reasonable inference based on the passage as a whole?", options: ["German radar technology remained superior to Allied technology throughout WWII.", "The Tizard Mission was primarily focused on sharing nuclear research, not radar.", "Technological advantages in specific areas like microwave radar could significantly influence major campaigns.", "Chain Home radar became completely obsolete immediately after the invention of the magnetron."], answer: "C" },
         ];
 
-        // --- State (Unchanged) ---
+        // --- State ---
         let currentQuestionIndex = 0;
         let userAnswers = new Array(questions.length).fill(null);
         let timerInterval;
@@ -327,55 +339,57 @@
         let userName = '';
         let userGoal = '';
         let userFocusArea = '';
-        // Add state for flagged questions if implementing flag feature
-        // let flaggedQuestions = new Array(questions.length).fill(false);
+        let isReviewingFromResults = false; // Flag to track if reviewing from results screen
+        // let flaggedQuestions = new Array(questions.length).fill(false); // Flag state placeholder
 
         // --- Elements ---
-        const appContainer = document.getElementById('app-container'); // Main container
+        const appContainer = document.getElementById('app-container');
         const setupScreen = document.getElementById('setup-screen');
         const examScreen = document.getElementById('exam-screen');
         const reviewScreen = document.getElementById('review-screen');
         const resultsScreen = document.getElementById('results-screen');
         const navigatorModal = document.getElementById('navigator-modal');
-
         const startButton = document.getElementById('start-button');
         const prevButton = document.getElementById('prev-button');
         const nextButton = document.getElementById('next-button');
         const navigatorButton = document.getElementById('navigator-button');
         const closeModalButton = document.getElementById('close-modal-button');
-        const endExamButton = document.getElementById('end-exam-button'); // Button on Review Screen
-        const endExamButtonFooter = document.getElementById('end-exam-button-footer'); // Button in Footer Bar
-        const flagButton = document.getElementById('flag-button'); // Placeholder
-
+        const endExamButton = document.getElementById('end-exam-button'); // On Review Screen
+        const endExamButtonFooter = document.getElementById('end-exam-button-footer'); // In Footer
+        const backToResultsButton = document.getElementById('back-to-results-button'); // New button
+        const flagButton = document.getElementById('flag-button');
         const passageNumberEl = document.getElementById('passage-number');
         const passageTextEl = document.getElementById('passage-text');
         const questionNumberEl = document.getElementById('question-number');
-        const questionNumberInfoEl = document.getElementById('question-number-info'); // For header
+        const questionNumberInfoEl = document.getElementById('question-number-info');
         const questionTextEl = document.getElementById('question-text');
         const optionsContainer = document.getElementById('options-container');
         const timerEl = document.getElementById('timer');
         const reviewGrid = document.getElementById('review-grid');
         const navigatorGrid = document.getElementById('navigator-grid');
         const scoreEl = document.getElementById('score');
+        const totalQuestionsResultsEl = document.getElementById('total-questions-results'); // Span for total questions in results
         const timeTakenEl = document.getElementById('time-taken');
         const resultsDetails = document.getElementById('results-details');
-
         const nameInput = document.getElementById('name');
         const goalInput = document.getElementById('goal');
         const focusAreaInput = document.getElementById('focus-area');
+        const examTitleEl = document.getElementById('exam-title'); // Title element
 
-        // --- Functions (Core logic mostly unchanged, updates for UI elements) ---
+
+        // --- Functions ---
 
         function startTimer() {
             examStartTime = new Date();
-            clearInterval(timerInterval); // Clear any existing interval
-            timerEl.textContent = formatTimeSeconds(timeLeft); // Initial display
+            clearInterval(timerInterval);
+            timerEl.textContent = formatTimeSeconds(timeLeft);
+            timerEl.classList.remove('text-gray-600', 'bg-gray-100'); // Ensure timer is red
+            timerEl.classList.add('text-red-600', 'bg-red-100');
             timerInterval = setInterval(() => {
                 timeLeft--;
                 timerEl.textContent = formatTimeSeconds(timeLeft);
-
                 if (timeLeft <= 0) {
-                    endExam(); // Automatically end exam when time runs out
+                    endExamAndShowResults(); // Automatically end exam if time runs out
                 }
             }, 1000);
         }
@@ -383,16 +397,18 @@
         function stopTimer() {
             clearInterval(timerInterval);
             examEndTime = examEndTime || new Date(); // Set end time if not already set
+            // Optionally make timer less prominent when stopped
+            timerEl.classList.remove('text-red-600', 'bg-red-100');
+            timerEl.classList.add('text-gray-600', 'bg-gray-100');
         }
 
-        // Formats time in MM:SS
         function formatTimeSeconds(totalSeconds) {
+             if (totalSeconds < 0) totalSeconds = 0; // Prevent negative time display
              const minutes = Math.floor(totalSeconds / 60);
              const seconds = totalSeconds % 60;
              return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
         }
 
-        // Formats time difference in readable string
         function formatTimeDifference(milliseconds) {
             if (!milliseconds || milliseconds < 0) return "0 min 00 sec";
             const totalSeconds = Math.round(milliseconds / 1000);
@@ -401,30 +417,31 @@
             return `${minutes} min ${seconds < 10 ? '0' : ''}${seconds} sec`;
         }
 
-
-        function loadQuestion(index) {
+        function loadQuestion(index, reviewMode = false) {
             if (index < 0 || index >= questions.length) return;
 
             currentQuestionIndex = index;
+            isReviewingFromResults = reviewMode; // Set the review mode flag
+
             const question = questions[index];
             const passageIndex = question.passageIndex;
             const passageContainer = document.querySelector('.passage-column');
             const questionContainer = document.querySelector('.question-column');
 
-            // Load passage if changed
-            if (index === 0 || questions[index-1].passageIndex !== passageIndex) {
+            // Load passage if changed or if it's the first load
+            if (index === 0 || questions[index-1]?.passageIndex !== passageIndex || reviewMode) {
                 passageTextEl.textContent = passages[passageIndex];
                 passageNumberEl.textContent = passageIndex + 1;
                  if (passageContainer) passageContainer.scrollTop = 0; // Scroll passage to top
             }
 
             questionNumberEl.textContent = index + 1;
-            questionNumberInfoEl.textContent = index + 1; // Update header info
+            questionNumberInfoEl.textContent = `${index + 1} of ${questions.length}`; // Update header info
             questionTextEl.textContent = question.text;
              if (questionContainer) questionContainer.scrollTop = 0; // Scroll question to top
 
             optionsContainer.innerHTML = ''; // Clear previous options
-            const optionLetters = ['A', 'B', 'C', 'D'];
+            const optionLetters = ['A', 'B', 'C', 'D']; // Assuming max 4 options
             question.options.forEach((option, i) => {
                 const optionId = `q${index}_opt${i}`;
                 const label = document.createElement('label');
@@ -437,46 +454,84 @@
                 radio.id = optionId;
                 radio.name = `question_${index}`;
                 radio.value = optionLetters[i];
+                radio.disabled = reviewMode; // Disable radio buttons in review mode
 
                 if (userAnswers[index] === optionLetters[i]) {
                     radio.checked = true;
-                    label.classList.add('selected-answer');
+                    label.classList.add('selected-answer'); // Highlight selected answer
                 }
 
+                // In review mode, highlight the correct answer as well
+                if (reviewMode) {
+                    label.style.cursor = 'default'; // Change cursor in review mode
+                    if (question.answer === optionLetters[i]) {
+                        label.classList.add('border-green-500', 'border-2'); // Highlight correct answer border
+                        if (!radio.checked) { // If it wasn't the selected answer, add different background
+                             label.classList.add('bg-green-50');
+                        }
+                    } else if (radio.checked) { // If user selected this incorrect answer
+                        label.classList.add('border-red-500', 'border-2', 'bg-red-50'); // Highlight incorrect selection
+                    }
+                }
+
+
                 label.appendChild(radio);
-                // Add letter prefix and option text
                 const textNode = document.createTextNode(`${optionLetters[i]}) ${option}`);
                 label.appendChild(textNode);
 
-                label.addEventListener('click', (e) => {
-                    // Prevent double firing if clicking directly on radio (though it's hidden)
-                    if (e.target.tagName !== 'INPUT') {
+                // Only add click listener if NOT in review mode
+                if (!reviewMode) {
+                    label.addEventListener('click', (e) => {
+                        // Prevent double firing if clicking directly on radio (though it's hidden)
+                        if (e.target.tagName !== 'INPUT') {
+                             handleOptionSelect(index, i, optionLetters[i]);
+                        }
+                    });
+                     // Add input change listener as backup / alternative
+                     radio.addEventListener('change', () => {
                          handleOptionSelect(index, i, optionLetters[i]);
-                    }
-                });
-                 // Add input change listener as backup / alternative
-                 radio.addEventListener('change', () => {
-                     handleOptionSelect(index, i, optionLetters[i]);
-                 });
-
+                     });
+                }
 
                 optionsContainer.appendChild(label);
             });
 
-            // Update button states
+            // Update button states based on mode
             prevButton.disabled = index === 0;
-            nextButton.textContent = index === questions.length - 1 ? 'Finish & Review (Alt+N) →' : 'Next (Alt+N) →';
+            nextButton.disabled = index === questions.length - 1;
 
-            updateNavigatorHighlight();
+            // Show/hide 'Back to Results' button and adjust footer layout
+            if (reviewMode) {
+                backToResultsButton.classList.remove('hidden');
+                endExamButtonFooter.classList.add('hidden'); // Hide End Exam button in footer during review
+                examTitleEl.textContent = "Reviewing Question"; // Change title
+                // Disable nav buttons during review from results
+                prevButton.disabled = true;
+                nextButton.disabled = true;
+                navigatorButton.disabled = true;
+                flagButton.disabled = true;
+            } else {
+                backToResultsButton.classList.add('hidden');
+                endExamButtonFooter.classList.remove('hidden'); // Show End Exam button
+                examTitleEl.textContent = "Verbal Reasoning"; // Restore title
+                navigatorButton.disabled = false;
+                flagButton.disabled = false;
+                 // Re-enable nav buttons based on index
+                prevButton.disabled = index === 0;
+                nextButton.disabled = index === questions.length - 1;
+            }
+
+
+            updateNavigatorHighlight(); // Highlight current question in navigator if open
         }
 
          function handleOptionSelect(questionIndex, optionIndex, optionValue) {
-             // Double check the index is correct
-             if (questionIndex !== currentQuestionIndex) return;
+             // Double check the index is correct and not in review mode
+             if (questionIndex !== currentQuestionIndex || isReviewingFromResults) return;
 
             userAnswers[questionIndex] = optionValue;
 
-            // Update visual selection
+            // Update visual selection for labels
             document.querySelectorAll(`#options-container .option-label`).forEach(lbl => {
                 lbl.classList.remove('selected-answer');
                 // Ensure corresponding hidden radio is unchecked
@@ -497,17 +552,17 @@
 
 
         function showNextQuestion() {
-            if (currentQuestionIndex < questions.length - 1) {
+            if (currentQuestionIndex < questions.length - 1 && !isReviewingFromResults) {
                 loadQuestion(currentQuestionIndex + 1);
-            } else {
-                // Last question, go to review screen
+            } else if (!isReviewingFromResults) {
+                // Last question during exam, go to review screen
                 stopTimer();
                 showReviewScreen();
             }
         }
 
         function showPrevQuestion() {
-            if (currentQuestionIndex > 0) {
+            if (currentQuestionIndex > 0 && !isReviewingFromResults) {
                 loadQuestion(currentQuestionIndex - 1);
             }
         }
@@ -549,12 +604,15 @@
                 } else {
                      button.classList.add('bg-gray-100', 'border-gray-300', 'hover:bg-gray-200');
                 }
+                // Add flag visual indicator if implementing flags
+                // if (flaggedQuestions[index]) button.classList.add('border-yellow-500', 'border-2');
+
                 button.onclick = () => {
                     reviewScreen.classList.add('hidden');
                     reviewScreen.classList.remove('flex');
                     showExamScreen(); // Go back to exam layout
-                    loadQuestion(index);
-                    // Don't restart timer during review
+                    loadQuestion(index); // Load the selected question
+                    // Timer remains stopped
                 };
                 reviewGrid.appendChild(button);
             });
@@ -574,11 +632,16 @@
                  if (index === currentQuestionIndex) {
                     button.classList.add('nav-current');
                 }
+                // Add flag visual indicator if implementing flags
+                // if (flaggedQuestions[index]) button.classList.add('border-yellow-500');
+
 
                 button.onclick = () => {
                     navigatorModal.classList.remove('flex'); // Hide modal
                     navigatorModal.classList.add('hidden');
-                    loadQuestion(index);
+                    if (!isReviewingFromResults) { // Only allow navigation if not in review-from-results mode
+                       loadQuestion(index);
+                    }
                 };
                 navigatorGrid.appendChild(button);
             });
@@ -597,6 +660,8 @@
                  if (index === currentQuestionIndex) {
                     button.classList.add('nav-current');
                 }
+                // Update flag visual indicator if implementing flags
+                // button.classList.toggle('border-yellow-500', flaggedQuestions[index]);
             });
         }
 
@@ -637,22 +702,42 @@
                 }
 
                 const resultDiv = document.createElement('div');
-                resultDiv.classList.add('p-3', 'rounded-md', 'border', 'text-sm');
+                // Add result-item class for hover effect and data-index for click handler
+                resultDiv.classList.add('result-item', 'p-3', 'rounded-md', 'border', 'text-sm');
                 resultDiv.classList.add(isCorrect ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200');
+                resultDiv.dataset.index = index; // Store the question index
 
                 resultDiv.innerHTML = `
-                    <p class="font-semibold mb-1">Question ${index + 1}: ${isCorrect ? '<span class="text-green-600">Correct</span>' : '<span class="text-red-600">Incorrect</span>'}</p>
+                    <div class="flex justify-between items-center mb-1">
+                        <p class="font-semibold">Question ${index + 1}</p>
+                        ${isCorrect ? '<span class="text-green-600 font-medium">Correct</span>' : '<span class="text-red-600 font-medium">Incorrect</span>'}
+                    </div>
                     <p class="text-xs text-gray-600 mb-1">Passage ${q.passageIndex + 1}</p>
                     <p class="mb-1 italic text-gray-700">"${q.text.length > 80 ? q.text.substring(0, 80) + '...' : q.text}"</p>
                     <p>Your answer: <span class="font-medium">${userAnswer || 'Not Answered'}</span></p>
                     ${!isCorrect ? `<p>Correct answer: <span class="font-medium">${correctAnswer}</span></p>` : ''}
                 `;
+
+                // Add click listener to revisit the question
+                resultDiv.addEventListener('click', () => {
+                    revisitQuestionFromResults(index);
+                });
+
                 resultsDetails.appendChild(resultDiv);
             });
 
-            scoreEl.textContent = score;
+            scoreEl.textContent = score; // Update score display
+            totalQuestionsResultsEl.textContent = questions.length; // Update total questions display
             const timeDiff = examEndTime - examStartTime;
             timeTakenEl.textContent = formatTimeDifference(timeDiff);
+        }
+
+        // Function to handle revisiting a question from the results screen
+        function revisitQuestionFromResults(index) {
+            resultsScreen.classList.add('hidden'); // Hide results
+            resultsScreen.classList.remove('flex');
+            showExamScreen(); // Show exam screen layout
+            loadQuestion(index, true); // Load question in review mode
         }
 
         // Combined function to end exam and show results
@@ -673,12 +758,16 @@
             userGoal = goalInput.value.trim();
             userFocusArea = focusAreaInput.value.trim();
 
-            showExamScreen(); // Transition to exam layout
-            timeLeft = 12 * 60; // Reset timer
+            // Reset state for a new exam
+            timeLeft = 12 * 60; // Reset timer duration
             userAnswers = new Array(questions.length).fill(null); // Reset answers
+            // flaggedQuestions = new Array(questions.length).fill(false); // Reset flags
             currentQuestionIndex = 0; // Reset index
+            isReviewingFromResults = false; // Ensure not in review mode
+
+            showExamScreen(); // Transition to exam layout
             startTimer();
-            loadQuestion(0);
+            loadQuestion(0); // Load the first question
             populateNavigator(); // Populate navigator on start
         });
 
@@ -690,8 +779,15 @@
         // End exam button in FOOTER BAR goes to review screen first
         endExamButtonFooter.addEventListener('click', handleEndExamFooterClick);
 
+        // Back to Results button listener
+        backToResultsButton.addEventListener('click', () => {
+            isReviewingFromResults = false; // Exit review mode
+            showResultsScreen(); // Go back to the results screen
+        });
+
 
         navigatorButton.addEventListener('click', () => {
+            if (isReviewingFromResults) return; // Don't open navigator when reviewing from results
             updateNavigatorButtons(); // Ensure buttons are styled correctly before showing
             navigatorModal.classList.remove('hidden');
             navigatorModal.classList.add('flex'); // Use flex to display and center
@@ -712,52 +808,65 @@
 
         // Flag button placeholder listener
         flagButton.addEventListener('click', () => {
+            if (isReviewingFromResults) return; // Disable flagging in review mode
             // Add flag functionality here later if needed
-            // e.g., toggle flag state, update button appearance
+            // const currentFlagState = flaggedQuestions[currentQuestionIndex];
+            // flaggedQuestions[currentQuestionIndex] = !currentFlagState;
+            // flagButton.textContent = flaggedQuestions[currentQuestionIndex] ? 'Unflag' : 'Flag for Review';
+            // flagButton.classList.toggle('bg-yellow-200', flaggedQuestions[currentQuestionIndex]);
+            // updateNavigatorButtons(); // Update navigator to show flag
             alert('Flag for Review functionality not yet implemented.');
         });
 
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-             // Only activate shortcuts if exam or review screen is visible and not in modal/input
+             // Only activate shortcuts if exam screen is visible and not in modal/input/review-from-results
              const isExamVisible = !examScreen.classList.contains('hidden');
-             const isReviewVisible = !reviewScreen.classList.contains('hidden');
              const isModalVisible = navigatorModal.classList.contains('flex');
              const isInputFocused = document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA');
 
-             if ((!isExamVisible && !isReviewVisible) || isModalVisible || isInputFocused) {
+             // Exit if not on exam screen, or modal is open, or input focused, or reviewing from results
+             if (!isExamVisible || isModalVisible || isInputFocused || isReviewingFromResults) {
                 return;
              }
 
              // Allow shortcuts only on exam screen for navigation/answering
-             if (isExamVisible) {
-                 const key = e.key.toLowerCase();
-                 const altOrOption = e.altKey; // Alt on Windows/Linux, Option on Mac
+             const key = e.key.toLowerCase();
+             const altOrOption = e.altKey; // Alt on Windows/Linux, Option on Mac
 
-                 if (altOrOption && key === 'n') {
-                     e.preventDefault();
-                     nextButton.click();
-                 } else if (altOrOption && key === 'p') {
-                     e.preventDefault();
-                     if (!prevButton.disabled) {
-                        prevButton.click();
-                     }
-                 } else if (['a', 'b', 'c', 'd'].includes(key)) {
-                     e.preventDefault();
-                     const optionIndex = ['a', 'b', 'c', 'd'].indexOf(key);
-                     const optionValue = ['A', 'B', 'C', 'D'][optionIndex];
-                     const currentQuestion = questions[currentQuestionIndex];
+             if (altOrOption && key === 'n') {
+                 e.preventDefault(); // Prevent default browser behavior (e.g., new window)
+                 if (!nextButton.disabled) { // Check if button is enabled
+                    nextButton.click();
+                 }
+             } else if (altOrOption && key === 'p') {
+                 e.preventDefault(); // Prevent default browser behavior
+                 if (!prevButton.disabled) { // Check if button is enabled
+                    prevButton.click();
+                 }
+             } else if (['a', 'b', 'c', 'd'].includes(key)) {
+                 e.preventDefault();
+                 const optionIndex = ['a', 'b', 'c', 'd'].indexOf(key);
+                 const optionValue = ['A', 'B', 'C', 'D'][optionIndex];
+                 const currentQuestion = questions[currentQuestionIndex];
 
-                     if (optionIndex < currentQuestion.options.length) {
-                         const label = document.querySelector(`#options-container label[data-option-index="${optionIndex}"]`);
-                         if (label) {
-                             // Directly call handleOptionSelect, avoids potential click issues
-                             handleOptionSelect(currentQuestionIndex, optionIndex, optionValue);
-                         }
-                     }
+                 // Check if the option index is valid for the current question
+                 if (optionIndex < currentQuestion.options.length) {
+                     // Directly call handleOptionSelect, avoids potential click issues
+                     handleOptionSelect(currentQuestionIndex, optionIndex, optionValue);
                  }
              }
+             // Add Alt+F for flag if implementing
+             // else if (altOrOption && key === 'f') {
+             //     e.preventDefault();
+             //     flagButton.click();
+             // }
+             // Add Alt+V for navigator if desired
+             // else if (altOrOption && key === 'v') {
+             //     e.preventDefault();
+             //     navigatorButton.click();
+             // }
         });
 
         // --- Initial Load ---
