@@ -31,21 +31,72 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             border-radius: 0.375rem; /* Slightly rounded corners */
             margin: 1rem; /* Add some margin */
+            overflow: hidden; /* Prevent content overflow from container */
         }
         /* Header and Footer */
         .header-bar, .footer-bar {
             flex-shrink: 0; /* Prevent shrinking */
-            background-color: #f9fafb; /* Light gray background */
-            border-bottom: 1px solid #e5e7eb; /* Separator line */
+            background-color: #006DAA; /* Updated background color */
+            color: white; /* Set default text color to white */
+            /* Removed border-bottom/border-top */
             padding: 0.75rem 1.5rem; /* Padding */
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .footer-bar {
-            border-top: 1px solid #e5e7eb;
-            border-bottom: none;
+
+        /* Specific text colors within header/footer */
+        .header-bar span, .header-bar div {
+             color: white;
         }
+        #timer {
+             background-color: rgba(255, 255, 255, 0.2); /* Lighter background for timer */
+             color: white;
+             font-weight: bold;
+             padding: 0.25rem 0.75rem; /* Adjusted padding */
+             border-radius: 0.25rem; /* Slightly rounded */
+        }
+         /* Footer Button Styling */
+        .footer-bar button {
+            background-color: transparent;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.5); /* Subtle white border */
+            padding: 0.4rem 0.8rem; /* Adjust padding */
+            font-size: 0.8rem; /* Adjust font size */
+            border-radius: 0.375rem;
+             transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+        .footer-bar button:hover:not(:disabled) {
+            background-color: rgba(255, 255, 255, 0.15); /* Slight white background on hover */
+            border-color: white;
+        }
+         .footer-bar button:disabled {
+             opacity: 0.5;
+             cursor: not-allowed;
+             border-color: rgba(255, 255, 255, 0.3);
+         }
+         /* Keep primary button distinct */
+         .footer-bar button#next-button {
+             background-color: #ffffff; /* White background */
+             color: #006DAA; /* Blue text */
+             border: 1px solid white;
+             font-weight: 500;
+         }
+         .footer-bar button#next-button:hover:not(:disabled) {
+             background-color: #f0f0f0; /* Slightly off-white on hover */
+         }
+         /* Flag button specific style */
+         #flag-button {
+             background-color: transparent;
+             border: 1px solid white;
+             color: white;
+         }
+         #flag-button:hover {
+             background-color: white;
+             color: #006DAA;
+         }
+
+
         /* Main Content Area */
         .main-content-area {
             flex-grow: 1; /* Take remaining vertical space */
@@ -67,7 +118,7 @@
 
         /* Style for selected answer */
         .selected-answer {
-            background-color: #bfdbfe; /* Tailwind blue-200 */
+            background-color: #bfdbfe !important; /* Tailwind blue-200 - use !important to override hover */
             border-color: #3b82f6 !important; /* Tailwind blue-500 */
         }
         /* Style for navigator buttons */
@@ -83,15 +134,15 @@
         .modal-content { background-color: #fefefe; margin: auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; border-radius: 0.5rem; }
         .modal.flex { display: flex; }
 
-        /* Button Styling */
+        /* General Button Styling (outside footer) */
         button, .button {
             transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
             border-radius: 0.375rem;
             padding: 0.5rem 1rem;
-            font-size: 0.875rem; /* Slightly smaller text */
+            font-size: 0.875rem;
             font-weight: 500;
             box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            cursor: pointer; /* Ensure pointer cursor */
+            cursor: pointer;
         }
         button:active, .button:active { transform: scale(0.98); }
         button:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -117,7 +168,7 @@
             transition: background-color 0.2s ease, border-color 0.2s ease;
             background-color: #ffffff; /* White background for options */
         }
-        .option-label:hover {
+        .option-label:hover:not(.selected-answer) { /* Prevent hover style if selected */
             background-color: #f3f4f6; /* Tailwind gray-100 */
             border-color: #a5b4fc; /* Indigo-300 on hover */
         }
@@ -132,6 +183,35 @@
         .result-item:hover {
             background-color: rgba(0, 0, 0, 0.03); /* Slight hover effect */
         }
+         /* Style for correct/incorrect indicators in results */
+         .result-item .correct-indicator { color: #16a34a; font-weight: 600;} /* Green-600 */
+         .result-item .incorrect-indicator { color: #dc2626; font-weight: 600;} /* Red-600 */
+
+         /* Review Grid Button Styles */
+         .review-grid-button {
+             padding: 0.5rem 0.25rem; /* Adjust padding */
+             border: 1px solid #d1d5db; /* Default border */
+             border-radius: 0.375rem;
+             text-align: center;
+             transition: background-color 0.2s ease, border-color 0.2s ease;
+             font-size: 0.875rem;
+             line-height: 1.25rem;
+             cursor: pointer;
+         }
+         .review-grid-button-answered {
+             background-color: #dcfce7; /* Lighter green */
+             border-color: #86efac; /* Green border */
+             color: #15803d; /* Darker green text */
+         }
+         .review-grid-button-unanswered {
+             background-color: #f3f4f6; /* Light gray */
+             border-color: #d1d5db; /* Gray border */
+             color: #4b5563; /* Gray text */
+         }
+          .review-grid-button:hover {
+             filter: brightness(95%); /* Slightly darken on hover */
+          }
+
 
         /* Responsive adjustments */
         @media (max-width: 768px) {
@@ -156,25 +236,41 @@
             .header-bar span, .footer-bar button { /* Adjust font size for smaller buttons/text */
                 font-size: 0.8rem;
             }
+            /* General button adjustments */
             button, .button {
                 padding: 0.4rem 0.8rem;
             }
+             /* Footer button specific adjustments */
+             .footer-bar button {
+                 padding: 0.3rem 0.6rem;
+                 font-size: 0.75rem;
+             }
             .grid-cols-5 { grid-template-columns: repeat(4, minmax(0, 1fr)); } /* Navigator grid adjustment */
             #review-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } /* Review grid adjustment */
+            .review-grid-button { font-size: 0.8rem; }
         }
          @media (max-width: 480px) {
              .grid-cols-5 { grid-template-columns: repeat(3, minmax(0, 1fr)); } /* Navigator grid adjustment */
              #review-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } /* Review grid adjustment */
              .header-bar span, .footer-bar button { font-size: 0.75rem; }
-             button, .button { padding: 0.3rem 0.6rem; }
+             /* General button adjustments */
+             button, .button {
+                 padding: 0.3rem 0.6rem;
+             }
+             /* Footer button specific adjustments */
+              .footer-bar button {
+                 padding: 0.25rem 0.5rem;
+                 font-size: 0.7rem;
+             }
              .option-label { padding: 0.5rem 0.75rem; font-size: 0.8rem;}
+             .review-grid-button { font-size: 0.75rem; }
          }
 
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-</head>
+    </head>
 <body>
 
     <div id="app-container">
@@ -211,10 +307,13 @@
 
         <div id="exam-screen" class="hidden flex flex-col h-full">
             <div class="header-bar">
-                <span id="exam-title" class="font-semibold text-gray-700">Verbal Reasoning</span> <div class="flex items-center space-x-4">
-                    <div id="timer" class="text-base font-semibold text-red-600 bg-red-100 px-3 py-1 rounded-md">12:00</div>
-                    <span class="text-sm text-gray-600">Question <span id="question-number-info">1</span> of 20</span>
-                    <button id="flag-button" class="subtle-button text-sm">Flag for Review</button>
+                <span id="exam-title" class="font-semibold">Verbal Reasoning</span>
+                <div class="flex items-center space-x-4">
+                    <div id="timer" class="text-base px-3 py-1 rounded-md">12:00</div>
+                    <span class="text-sm">Question <span id="question-number-info">1</span> of 20</span>
+                    <button id="flag-button" class="text-sm font-medium border border-white rounded px-2 py-1 hover:bg-white hover:text-blue-600 transition-colors duration-150">
+                        Flag for Review
+                    </button>
                 </div>
             </div>
 
@@ -235,19 +334,21 @@
             </div>
 
             <div class="footer-bar">
-                 <button id="back-to-results-button" class="secondary-button hidden mr-auto">← Back to Results</button>
-                 <button id="end-exam-button-footer" class="secondary-button">End Exam</button>
-                 <div class="flex items-center space-x-2 ml-auto"> <button id="prev-button" class="secondary-button" disabled>← Previous (Alt+P)</button>
-                     <button id="navigator-button" class="subtle-button">Navigator</button>
-                     <button id="next-button" class="primary-button">Next (Alt+N) →</button>
+                 <button id="back-to-results-button" class="hidden mr-auto">← Back to Results</button>
+                 <button id="end-exam-button-footer">End Exam</button>
+                 <div class="flex items-center space-x-2 ml-auto">
+                     <button id="prev-button" disabled>← Previous (Alt+P)</button>
+                     <button id="navigator-button">Navigator</button>
+                     <button id="next-button">Next (Alt+N) →</button>
                  </div>
             </div>
         </div>
 
         <div id="review-screen" class="hidden p-6 md:p-8 flex flex-col items-center h-full overflow-y-auto">
             <h2 class="text-2xl font-bold mb-4 text-center text-blue-600">Review Your Answers</h2>
-            <p class="text-center text-gray-600 mb-6">Click on a question number to review and change your answer.</p>
-            <div id="review-grid" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-10 gap-3 mb-6 w-full max-w-3xl"> </div>
+            <p class="text-center text-gray-600 mb-6">Click on a question number to review it. Green indicates answered questions.</p>
+            <div id="review-grid" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-10 gap-3 mb-6 w-full max-w-3xl">
+                </div>
             <div class="mt-auto pt-6">
                 <button id="end-exam-button" class="danger-button text-lg px-8 py-3">
                     End Exam & See Results
@@ -293,7 +394,7 @@
     </div>
 
     <script>
-        // --- Data (Passages and Questions remain the same) ---
+        // --- Data ---
         const passages = [
             // Passage 1: NVIDIA
             `NVIDIA Corporation stands as an American multinational technology giant, renowned globally for its pioneering advancements in accelerated computing and artificial intelligence (AI). The company primarily designs graphics processing units (GPUs) for the lucrative gaming and demanding professional markets, alongside system on a chip units (SoCs) crucial for mobile computing and the rapidly evolving automotive sector. Crucially, NVIDIA also provides powerful chips, systems, and software frameworks that underpin much of modern Al development and deployment. Founded in April 1993 by Jensen Huang, Chris Malachowsky, and Curtis Priem with an initial focus on the burgeoning PC graphics card market, the company maintains its headquarters in Santa Clara, California, the heart of Silicon Valley. Its early innovations helped define standards for 3D graphics acceleration.\n\nNVIDIA first gained widespread prominence with its influential GeForce line of GPUs, ultimately becoming a dominant force in high-performance graphics technology essential for realistic video gaming. Beyond the consumer sphere, its professional Quadro (now branded NVIDIA RTX) GPUs became industry standards in workstations utilized for complex tasks like computer-aided design (CAD), visual effects production, and scientific visualization. Recognizing the inherent parallel processing capabilities of their GPUs, NVIDIA strategically developed CUDA (Compute Unified Device Architecture), a revolutionary parallel computing platform and programming model. This initiative allowed developers worldwide to harness the immense processing power of GPUs for general-purpose computing tasks, extending far beyond graphics rendering. This pivotal move positioned NVIDIA definitively at the forefront of the subsequent Al revolution, with its powerful chips (like the A100 and H100 Tensor Core GPUs) becoming indispensable for training sophisticated deep learning models across countless domains. It also produces high-performance networking hardware via its Mellanox acquisition and develops comprehensive Al platforms for autonomous vehicles (NVIDIA DRIVE).\n\nReflecting its central role in powering Al advancements, NVIDIA's market capitalization surged dramatically in the early 2020s, making it one of the world's most valuable companies. Led dynamically by co-founder and long-time CEO Jensen Huang, the company consistently reports substantial revenue growth, increasingly driven by its data center segment which supplies the critical Al infrastructure demanded by cloud providers and enterprises globally. NVIDIA's influence now extends well beyond hardware; it cultivates a vast, robust ecosystem of software developers, researchers, and partners leveraging its platforms (like CUDA, Omniverse), solidifying its position as a fundamental linchpin in modern high-performance computing, data science, and artificial intelligence research and deployment worldwide.`,
@@ -383,8 +484,8 @@
             examStartTime = new Date();
             clearInterval(timerInterval);
             timerEl.textContent = formatTimeSeconds(timeLeft);
-            timerEl.classList.remove('text-gray-600', 'bg-gray-100'); // Ensure timer is red
-            timerEl.classList.add('text-red-600', 'bg-red-100');
+            timerEl.classList.remove('text-gray-300'); // Remove stopped state style
+            timerEl.classList.add('text-white', 'bg-opacity-20', 'bg-white'); // Use white text and semi-transparent white bg
             timerInterval = setInterval(() => {
                 timeLeft--;
                 timerEl.textContent = formatTimeSeconds(timeLeft);
@@ -397,9 +498,9 @@
         function stopTimer() {
             clearInterval(timerInterval);
             examEndTime = examEndTime || new Date(); // Set end time if not already set
-            // Optionally make timer less prominent when stopped
-            timerEl.classList.remove('text-red-600', 'bg-red-100');
-            timerEl.classList.add('text-gray-600', 'bg-gray-100');
+            // Make timer less prominent when stopped (e.g., gray text on the blue bg)
+            timerEl.classList.remove('text-white', 'bg-opacity-20', 'bg-white');
+            timerEl.classList.add('text-gray-300'); // Lighter gray text when stopped
         }
 
         function formatTimeSeconds(totalSeconds) {
@@ -429,6 +530,7 @@
             const questionContainer = document.querySelector('.question-column');
 
             // Load passage if changed or if it's the first load
+            // Ensure passage reloads correctly when reviewing from results
             if (index === 0 || questions[index-1]?.passageIndex !== passageIndex || reviewMode) {
                 passageTextEl.textContent = passages[passageIndex];
                 passageNumberEl.textContent = passageIndex + 1;
@@ -456,20 +558,26 @@
                 radio.value = optionLetters[i];
                 radio.disabled = reviewMode; // Disable radio buttons in review mode
 
+                // Clear previous review styles
+                label.classList.remove('border-green-500', 'border-red-500', 'border-2', 'bg-green-50', 'bg-red-50');
+                label.style.cursor = reviewMode ? 'default' : 'pointer'; // Set cursor based on mode
+
                 if (userAnswers[index] === optionLetters[i]) {
                     radio.checked = true;
                     label.classList.add('selected-answer'); // Highlight selected answer
                 }
 
-                // In review mode, highlight the correct answer as well
+                // In review mode, add correct/incorrect styling AFTER setting selected state
                 if (reviewMode) {
-                    label.style.cursor = 'default'; // Change cursor in review mode
-                    if (question.answer === optionLetters[i]) {
+                    const isCorrectAnswer = question.answer === optionLetters[i];
+                    const isSelectedAnswer = userAnswers[index] === optionLetters[i];
+
+                    if (isCorrectAnswer) {
                         label.classList.add('border-green-500', 'border-2'); // Highlight correct answer border
-                        if (!radio.checked) { // If it wasn't the selected answer, add different background
+                        if (!isSelectedAnswer) { // If correct but not selected, add light green bg
                              label.classList.add('bg-green-50');
                         }
-                    } else if (radio.checked) { // If user selected this incorrect answer
+                    } else if (isSelectedAnswer) { // If selected but incorrect
                         label.classList.add('border-red-500', 'border-2', 'bg-red-50'); // Highlight incorrect selection
                     }
                 }
@@ -498,7 +606,17 @@
 
             // Update button states based on mode
             prevButton.disabled = index === 0;
-            nextButton.disabled = index === questions.length - 1;
+            // Adjust Next button text/state for last question during exam
+            if (!reviewMode && index === questions.length - 1) {
+                 nextButton.textContent = 'Finish & Review (Alt+N) →';
+                 nextButton.disabled = false; // Ensure it's enabled on last question
+            } else if (!reviewMode) {
+                 nextButton.textContent = 'Next (Alt+N) →';
+                 nextButton.disabled = false; // Ensure enabled for other questions
+            } else { // In review mode
+                 nextButton.disabled = true; // Disable next in review mode
+            }
+
 
             // Show/hide 'Back to Results' button and adjust footer layout
             if (reviewMode) {
@@ -507,7 +625,7 @@
                 examTitleEl.textContent = "Reviewing Question"; // Change title
                 // Disable nav buttons during review from results
                 prevButton.disabled = true;
-                nextButton.disabled = true;
+                // nextButton is already disabled above
                 navigatorButton.disabled = true;
                 flagButton.disabled = true;
             } else {
@@ -516,9 +634,8 @@
                 examTitleEl.textContent = "Verbal Reasoning"; // Restore title
                 navigatorButton.disabled = false;
                 flagButton.disabled = false;
-                 // Re-enable nav buttons based on index
+                 // Re-enable prev button based on index (next is handled above)
                 prevButton.disabled = index === 0;
-                nextButton.disabled = index === questions.length - 1;
             }
 
 
@@ -552,14 +669,24 @@
 
 
         function showNextQuestion() {
-            if (currentQuestionIndex < questions.length - 1 && !isReviewingFromResults) {
-                loadQuestion(currentQuestionIndex + 1);
-            } else if (!isReviewingFromResults) {
-                // Last question during exam, go to review screen
-                stopTimer();
-                showReviewScreen();
+            // Check if not reviewing from results screen
+            if (!isReviewingFromResults) {
+                // If it's the last question (index = length - 1)
+                if (currentQuestionIndex === questions.length - 1) {
+                    stopTimer(); // Stop timer before showing review
+                    showReviewScreen(); // Go to review screen
+                }
+                // Otherwise, if there are more questions
+                else if (currentQuestionIndex < questions.length - 1) {
+                    loadQuestion(currentQuestionIndex + 1); // Load next question
+                }
+            }
+            // If reviewing from results, this button should be disabled, but add safety check
+            else {
+                console.warn("Next button clicked while in review mode from results. Should be disabled.");
             }
         }
+
 
         function showPrevQuestion() {
             if (currentQuestionIndex > 0 && !isReviewingFromResults) {
@@ -598,12 +725,14 @@
             questions.forEach((_, index) => {
                 const button = document.createElement('button');
                 button.textContent = index + 1;
-                button.classList.add('py-2', 'px-1', 'border', 'rounded-md', 'text-center', 'transition', 'duration-150', 'ease-in-out', 'text-sm');
-                if (userAnswers[index]) {
-                    button.classList.add('bg-green-100', 'border-green-300', 'hover:bg-green-200');
+                // Apply base and conditional styles
+                button.className = 'review-grid-button'; // Base class
+                if (userAnswers[index] !== null && userAnswers[index] !== undefined) {
+                    button.classList.add('review-grid-button-answered');
                 } else {
-                     button.classList.add('bg-gray-100', 'border-gray-300', 'hover:bg-gray-200');
+                     button.classList.add('review-grid-button-unanswered');
                 }
+
                 // Add flag visual indicator if implementing flags
                 // if (flaggedQuestions[index]) button.classList.add('border-yellow-500', 'border-2');
 
@@ -693,10 +822,20 @@
             let score = 0;
             resultsDetails.innerHTML = ''; // Clear previous results
 
+            // --- Verification Start ---
+            console.log("Generating Results. User Answers:", userAnswers);
+            // --- Verification End ---
+
             questions.forEach((q, index) => {
-                const userAnswer = userAnswers[index];
-                const correctAnswer = q.answer;
-                const isCorrect = userAnswer === correctAnswer;
+                const userAnswer = userAnswers[index]; // e.g., "A", "B", null
+                const correctAnswer = q.answer;     // e.g., "A", "B"
+                // Ensure strict comparison and handle null/undefined user answers
+                const isCorrect = userAnswer !== null && userAnswer !== undefined && userAnswer === correctAnswer;
+
+                 // --- Verification Start ---
+                 console.log(`Q${index + 1}: User Answer='${userAnswer}' (Type: ${typeof userAnswer}), Correct Answer='${correctAnswer}', isCorrect=${isCorrect}`);
+                 // --- Verification End ---
+
                 if (isCorrect) {
                     score++;
                 }
@@ -704,17 +843,19 @@
                 const resultDiv = document.createElement('div');
                 // Add result-item class for hover effect and data-index for click handler
                 resultDiv.classList.add('result-item', 'p-3', 'rounded-md', 'border', 'text-sm');
+                // Apply background/border based on correctness
                 resultDiv.classList.add(isCorrect ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200');
                 resultDiv.dataset.index = index; // Store the question index
 
+                // Updated innerHTML for clearer Correct/Incorrect indication
                 resultDiv.innerHTML = `
                     <div class="flex justify-between items-center mb-1">
                         <p class="font-semibold">Question ${index + 1}</p>
-                        ${isCorrect ? '<span class="text-green-600 font-medium">Correct</span>' : '<span class="text-red-600 font-medium">Incorrect</span>'}
+                        ${isCorrect ? '<span class="correct-indicator">Correct</span>' : '<span class="incorrect-indicator">Incorrect</span>'}
                     </div>
                     <p class="text-xs text-gray-600 mb-1">Passage ${q.passageIndex + 1}</p>
                     <p class="mb-1 italic text-gray-700">"${q.text.length > 80 ? q.text.substring(0, 80) + '...' : q.text}"</p>
-                    <p>Your answer: <span class="font-medium">${userAnswer || 'Not Answered'}</span></p>
+                    <p>Your answer: <span class="font-medium">${userAnswer !== null && userAnswer !== undefined ? userAnswer : 'Not Answered'}</span></p>
                     ${!isCorrect ? `<p>Correct answer: <span class="font-medium">${correctAnswer}</span></p>` : ''}
                 `;
 
@@ -725,6 +866,10 @@
 
                 resultsDetails.appendChild(resultDiv);
             });
+
+             // --- Verification Start ---
+             console.log("Final Score:", score);
+             // --- Verification End ---
 
             scoreEl.textContent = score; // Update score display
             totalQuestionsResultsEl.textContent = questions.length; // Update total questions display
@@ -813,7 +958,7 @@
             // const currentFlagState = flaggedQuestions[currentQuestionIndex];
             // flaggedQuestions[currentQuestionIndex] = !currentFlagState;
             // flagButton.textContent = flaggedQuestions[currentQuestionIndex] ? 'Unflag' : 'Flag for Review';
-            // flagButton.classList.toggle('bg-yellow-200', flaggedQuestions[currentQuestionIndex]);
+            // flagButton.classList.toggle('bg-yellow-200', flaggedQuestions[currentQuestionIndex]); // Example visual toggle
             // updateNavigatorButtons(); // Update navigator to show flag
             alert('Flag for Review functionality not yet implemented.');
         });
