@@ -89,11 +89,22 @@
              background-color: transparent;
              border: 1px solid white;
              color: white;
+             transition: background-color 0.2s ease, color 0.2s ease; /* Add transition */
          }
          #flag-button:hover {
              background-color: white;
              color: #006DAA;
          }
+         /* Style for when a question IS flagged */
+          #flag-button.flagged {
+              background-color: #facc15; /* Yellow-400 */
+              border-color: #facc15;
+              color: #422006; /* Dark brown text for contrast */
+          }
+          #flag-button.flagged:hover {
+              background-color: #f59e0b; /* Amber-500 */
+              border-color: #f59e0b;
+          }
 
 
         /* Main Content Area */
@@ -128,6 +139,20 @@
             border: 2px solid #3b82f6 !important; /* Tailwind blue-500 */
             font-weight: bold;
         }
+        /* Style for flagged questions in navigator/review */
+        .nav-flagged, .review-flagged {
+            border: 2px solid #f59e0b !important; /* Amber-500 border */
+            position: relative; /* Needed for potential icon positioning */
+        }
+        /* Optional: Add a small flag icon
+        .nav-flagged::after, .review-flagged::after {
+            content: "🚩";
+            font-size: 0.6rem;
+            position: absolute;
+            top: 1px;
+            right: 1px;
+        } */
+
         /* Modal Styles */
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
         .modal-content { background-color: #fefefe; margin: auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; border-radius: 0.5rem; }
@@ -320,7 +345,7 @@
                 <div class="flex items-center space-x-4">
                     <div id="timer" class="text-base px-3 py-1 rounded-md">12:00</div>
                     <span class="text-sm">Question <span id="question-number-info">1</span> of 20</span>
-                    <button id="flag-button" class="text-sm font-medium border border-white rounded px-2 py-1 hover:bg-white hover:text-blue-600 transition-colors duration-150">
+                    <button id="flag-button" class="text-sm font-medium border border-white rounded px-2 py-1 transition-colors duration-150">
                         Flag for Review
                     </button>
                 </div>
@@ -354,8 +379,11 @@
         </div>
 
         <div id="review-screen" class="hidden p-6 md:p-8 flex flex-col items-center h-full overflow-y-auto">
-            <h2 class="text-2xl font-bold mb-4 text-center text-blue-600">Review Your Answers</h2>
-            <p class="text-center text-gray-600 mb-6">Click on a question number to review it. Green indicates answered questions.</p>
+            <div class="w-full max-w-3xl mb-4 flex justify-between items-center">
+                 <h2 class="text-2xl font-bold text-blue-600">Review Your Answers</h2>
+                 <button id="filter-flagged-button" class="secondary-button text-sm">Show Flagged Only</button>
+            </div>
+            <p class="text-center text-gray-600 mb-6">Click on a question number to review it. Green indicates answered, Yellow border indicates flagged.</p>
             <div id="review-grid" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-10 gap-3 mb-6 w-full max-w-3xl">
                 </div>
             <div class="mt-auto pt-6">
@@ -394,7 +422,7 @@
                     <h3 class="text-xl font-semibold text-gray-800">Question Navigator</h3>
                     <button id="close-modal-button" class="text-gray-500 hover:text-gray-700 text-2xl font-bold">&times;</button>
                 </div>
-                <p class="text-sm text-gray-600 mb-4">Click a number to jump to that question. Green indicates answered questions.</p>
+                <p class="text-sm text-gray-600 mb-4">Click a number to jump. Green: answered, Yellow border: flagged.</p>
                 <div id="navigator-grid" class="grid grid-cols-5 gap-3">
                     </div>
             </div>
@@ -453,7 +481,8 @@
         let isReviewingFromResults = false; // Flag to track if reviewing from results screen
         let questionStartTime = null; // Timestamp when the current question was loaded
         let questionTimes = []; // Array to store time spent on each question (in ms)
-        // let flaggedQuestions = new Array(questions.length).fill(false); // Flag state placeholder
+        let flaggedQuestions = []; // NEW: Array to track flagged questions
+        let isFilteringFlagged = false; // NEW: State for review screen filter
 
         // --- Elements ---
         const appContainer = document.getElementById('app-container');
@@ -488,6 +517,7 @@
         const goalInput = document.getElementById('goal');
         const focusAreaInput = document.getElementById('focus-area');
         const examTitleEl = document.getElementById('exam-title'); // Title element
+        const filterFlaggedButton = document.getElementById('filter-flagged-button'); // NEW: Filter button
 
 
         // --- Functions ---
@@ -537,22 +567,35 @@
                 const timeSpent = Date.now() - questionStartTime;
                 // Add to existing time for this question (handles revisiting)
                 questionTimes[index] = (questionTimes[index] || 0) + timeSpent;
-                // console.log(`Recorded ${Math.round(timeSpent/1000)}s for Q${index + 1}. Total: ${Math.round(questionTimes[index]/1000)}s`); // Debug log
             }
             questionStartTime = null; // Reset start time after recording or if invalid
+        }
+
+        /** Toggles the flag status for the current question */
+        function toggleFlag() {
+            if (isReviewingFromResults) return; // Don't allow flagging when reviewing from results
+
+            const index = currentQuestionIndex;
+            flaggedQuestions[index] = !flaggedQuestions[index]; // Toggle the flag state
+            updateFlagButtonAppearance(); // Update the button style/text
+            updateNavigatorButtons(); // Update navigator if open
+        }
+
+        /** Updates the flag button's appearance based on the current question's flag status */
+        function updateFlagButtonAppearance() {
+            const isFlagged = flaggedQuestions[currentQuestionIndex];
+            flagButton.textContent = isFlagged ? 'Unflag' : 'Flag for Review';
+            flagButton.classList.toggle('flagged', isFlagged); // Add/remove 'flagged' class
         }
 
 
         function loadQuestion(index, reviewMode = false) {
             if (index < 0 || index >= questions.length) return;
 
-            // --- Record time for the PREVIOUS question before loading the new one ---
-            // Only record if not in review mode (i.e., during the actual exam)
-            // Check currentQuestionIndex BEFORE updating it
+            // Record time for the PREVIOUS question before loading the new one
             if (!isReviewingFromResults) {
                  recordTimeSpent(currentQuestionIndex);
             }
-            // ---------------------------------------------------------------------
 
             currentQuestionIndex = index;
             isReviewingFromResults = reviewMode; // Set the review mode flag
@@ -562,22 +605,20 @@
             const passageContainer = document.querySelector('.passage-column');
             const questionContainer = document.querySelector('.question-column');
 
-            // Load passage if changed or if it's the first load
-            // Ensure passage reloads correctly when reviewing from results
+            // Load passage if changed or first load
             if (index === 0 || questions[index-1]?.passageIndex !== passageIndex || reviewMode) {
-                // Use full passage text here
-                passageTextEl.innerHTML = passages[passageIndex].replace(/\n/g, '<br><br>'); // Replace newlines for HTML
+                passageTextEl.innerHTML = passages[passageIndex].replace(/\n/g, '<br><br>');
                 passageNumberEl.textContent = passageIndex + 1;
-                 if (passageContainer) passageContainer.scrollTop = 0; // Scroll passage to top
+                 if (passageContainer) passageContainer.scrollTop = 0;
             }
 
             questionNumberEl.textContent = index + 1;
-            questionNumberInfoEl.textContent = `${index + 1} of ${questions.length}`; // Update header info
+            questionNumberInfoEl.textContent = `${index + 1} of ${questions.length}`;
             questionTextEl.textContent = question.text;
-             if (questionContainer) questionContainer.scrollTop = 0; // Scroll question to top
+             if (questionContainer) questionContainer.scrollTop = 0;
 
-            optionsContainer.innerHTML = ''; // Clear previous options
-            const optionLetters = ['A', 'B', 'C', 'D']; // Assuming max 4 options
+            optionsContainer.innerHTML = '';
+            const optionLetters = ['A', 'B', 'C', 'D'];
             question.options.forEach((option, i) => {
                 const optionId = `q${index}_opt${i}`;
                 const label = document.createElement('label');
@@ -590,109 +631,85 @@
                 radio.id = optionId;
                 radio.name = `question_${index}`;
                 radio.value = optionLetters[i];
-                radio.disabled = reviewMode; // Disable radio buttons in review mode
+                radio.disabled = reviewMode;
 
-                // Clear previous review styles
                 label.classList.remove('border-green-500', 'border-red-500', 'border-2', 'bg-green-50', 'bg-red-50', 'selected-answer');
-                label.style.cursor = reviewMode ? 'default' : 'pointer'; // Set cursor based on mode
+                label.style.cursor = reviewMode ? 'default' : 'pointer';
 
                 if (userAnswers[index] === optionLetters[i]) {
                     radio.checked = true;
-                    label.classList.add('selected-answer'); // Highlight selected answer
+                    label.classList.add('selected-answer');
                 }
 
-                // In review mode, add correct/incorrect styling AFTER setting selected state
                 if (reviewMode) {
                     const isCorrectAnswer = question.correctAnswer === optionLetters[i];
                     const isSelectedAnswer = userAnswers[index] === optionLetters[i];
-
                     if (isCorrectAnswer) {
-                        label.classList.add('border-green-500', 'border-2'); // Highlight correct answer border
-                        if (!isSelectedAnswer) { // If correct but not selected, add light green bg
-                             label.classList.add('bg-green-50');
-                        }
-                    } else if (isSelectedAnswer) { // If selected but incorrect
-                        label.classList.add('border-red-500', 'border-2', 'bg-red-50'); // Highlight incorrect selection
+                        label.classList.add('border-green-500', 'border-2');
+                        if (!isSelectedAnswer) label.classList.add('bg-green-50');
+                    } else if (isSelectedAnswer) {
+                        label.classList.add('border-red-500', 'border-2', 'bg-red-50');
                     }
                 }
 
-
                 label.appendChild(radio);
-                const textNode = document.createTextNode(`${optionLetters[i]}) ${option}`);
-                label.appendChild(textNode);
+                label.appendChild(document.createTextNode(`${optionLetters[i]}) ${option}`));
 
-                // Only add click listener if NOT in review mode
                 if (!reviewMode) {
                     label.addEventListener('click', (e) => {
-                        // Prevent double firing if clicking directly on radio (though it's hidden)
-                        if (e.target.tagName !== 'INPUT') {
-                             handleOptionSelect(index, i, optionLetters[i]);
-                        }
+                        if (e.target.tagName !== 'INPUT') handleOptionSelect(index, i, optionLetters[i]);
                     });
-                     // Add input change listener as backup / alternative
-                     radio.addEventListener('change', () => {
-                         handleOptionSelect(index, i, optionLetters[i]);
-                     });
+                    radio.addEventListener('change', () => handleOptionSelect(index, i, optionLetters[i]));
                 }
-
                 optionsContainer.appendChild(label);
             });
 
-            // Update button states based on mode
+            // Update button states
             prevButton.disabled = index === 0;
-            // Adjust Next button text/state for last question during exam
             if (!reviewMode && index === questions.length - 1) {
-                 nextButton.textContent = 'Finish & Review'; // Updated text
-                 nextButton.disabled = false; // Ensure it's enabled on last question
+                 nextButton.textContent = 'Finish & Review';
+                 nextButton.disabled = false;
             } else if (!reviewMode) {
                  nextButton.textContent = 'Next (Alt+N) →';
-                 nextButton.disabled = false; // Ensure enabled for other questions
-            } else { // In review mode
-                 nextButton.disabled = true; // Disable next in review mode
+                 nextButton.disabled = false;
+            } else {
+                 nextButton.disabled = true;
             }
 
+            // Update Flag button appearance for the loaded question
+            updateFlagButtonAppearance();
 
-            // Show/hide 'Back to Results' button and adjust footer layout
+            // Show/hide 'Back to Results' button & manage footer buttons
             if (reviewMode) {
                 backToResultsButton.classList.remove('hidden');
-                endExamButtonFooter.classList.add('hidden'); // Hide End Exam button in footer during review
-                examTitleEl.textContent = "Reviewing Question"; // Change title
-                // Disable nav buttons during review from results
+                endExamButtonFooter.classList.add('hidden');
+                examTitleEl.textContent = "Reviewing Question";
                 prevButton.disabled = true;
-                // nextButton is already disabled above
                 navigatorButton.disabled = true;
-                flagButton.disabled = true;
+                flagButton.disabled = true; // Disable flagging when reviewing from results
             } else {
                 backToResultsButton.classList.add('hidden');
-                endExamButtonFooter.classList.remove('hidden'); // Show End Exam button
-                examTitleEl.textContent = "Verbal Reasoning"; // Restore title
+                endExamButtonFooter.classList.remove('hidden');
+                examTitleEl.textContent = "Verbal Reasoning";
                 navigatorButton.disabled = false;
-                flagButton.disabled = false;
-                 // Re-enable prev button based on index (next is handled above)
+                flagButton.disabled = false; // Enable flag button during exam
                 prevButton.disabled = index === 0;
             }
 
+            updateNavigatorHighlight(); // Update navigator highlight
 
-            updateNavigatorHighlight(); // Highlight current question in navigator if open
-
-            // --- Start timer for the NEW question ---
-            // Only start if not in review mode
+            // Start timer for the NEW question if not in review mode
             if (!isReviewingFromResults) {
                 questionStartTime = Date.now();
             }
-             // ---------------------------------------
         }
 
          function handleOptionSelect(questionIndex, optionIndex, optionValue) {
-             // Double check the index is correct and not in review mode
              if (questionIndex !== currentQuestionIndex || isReviewingFromResults) return;
-
             userAnswers[questionIndex] = optionValue;
 
-            // Update visual selection for labels
             document.querySelectorAll(`#options-container .option-label`).forEach(lbl => {
                 lbl.classList.remove('selected-answer');
-                // Ensure corresponding hidden radio is unchecked
                 const radio = lbl.querySelector('input[type="radio"]');
                 if(radio) radio.checked = false;
             });
@@ -700,40 +717,30 @@
             const selectedLabel = document.querySelector(`#options-container label[for="q${questionIndex}_opt${optionIndex}"]`);
              if (selectedLabel) {
                 selectedLabel.classList.add('selected-answer');
-                // Ensure the hidden radio button is also checked
                 const radio = selectedLabel.querySelector('input[type="radio"]');
                 if (radio) radio.checked = true;
             }
-
-            updateNavigatorButtons(); // Update navigator appearance if modal is open
+            updateNavigatorButtons();
         }
 
 
         function showNextQuestion() {
-            // Check if not reviewing from results screen
             if (!isReviewingFromResults) {
-                // Record time for the current question *before* navigating away
-                recordTimeSpent(currentQuestionIndex);
-
-                // If it's the last question (index = length - 1)
+                recordTimeSpent(currentQuestionIndex); // Record time before moving
                 if (currentQuestionIndex === questions.length - 1) {
-                    stopTimer(); // Stop overall timer before showing review
-                    showReviewScreen(); // Go to review screen
-                }
-                // Otherwise, if there are more questions
-                else if (currentQuestionIndex < questions.length - 1) {
-                    loadQuestion(currentQuestionIndex + 1); // Load next question (this will start its timer)
+                    stopTimer();
+                    showReviewScreen();
+                } else if (currentQuestionIndex < questions.length - 1) {
+                    loadQuestion(currentQuestionIndex + 1);
                 }
             }
         }
 
 
         function showPrevQuestion() {
-             // Check if not reviewing from results screen
             if (currentQuestionIndex > 0 && !isReviewingFromResults) {
-                 // Record time for the current question *before* navigating away
-                recordTimeSpent(currentQuestionIndex);
-                loadQuestion(currentQuestionIndex - 1); // Load previous question (this will start its timer)
+                recordTimeSpent(currentQuestionIndex); // Record time before moving
+                loadQuestion(currentQuestionIndex - 1);
             }
         }
 
@@ -742,87 +749,86 @@
             examScreen.classList.add('hidden');
             reviewScreen.classList.add('hidden');
             resultsScreen.classList.add('hidden');
-            appContainer.classList.remove('flex', 'flex-col'); // Reset exam layout classes if needed
+            appContainer.classList.remove('flex', 'flex-col');
         }
 
         function showExamScreen() {
             setupScreen.classList.add('hidden');
             examScreen.classList.remove('hidden');
-            examScreen.classList.add('flex'); // Ensure flex layout is applied
+            examScreen.classList.add('flex');
             reviewScreen.classList.add('hidden');
             resultsScreen.classList.add('hidden');
-            appContainer.classList.add('flex', 'flex-col'); // Ensure main container has flex column
+            appContainer.classList.add('flex', 'flex-col');
         }
 
 
-        function showReviewScreen() {
+        function showReviewScreen(filterFlagged = false) { // Added filter parameter
             // Record time for the last question viewed before entering review
             recordTimeSpent(currentQuestionIndex);
-            stopTimer(); // Ensure overall timer is stopped before review
+            stopTimer(); // Ensure overall timer is stopped
 
             examScreen.classList.add('hidden');
             reviewScreen.classList.remove('hidden');
-            reviewScreen.classList.add('flex'); // Use flex for review screen layout
+            reviewScreen.classList.add('flex');
             resultsScreen.classList.add('hidden');
             setupScreen.classList.add('hidden');
-            appContainer.classList.add('flex', 'flex-col'); // Keep container layout
+            appContainer.classList.add('flex', 'flex-col');
 
             reviewGrid.innerHTML = ''; // Clear previous grid
             questions.forEach((_, index) => {
+                 // NEW: Check if filtering and skip if not flagged
+                 if (filterFlagged && !flaggedQuestions[index]) {
+                     return; // Skip this iteration if filtering and not flagged
+                 }
+
                 const button = document.createElement('button');
                 button.textContent = index + 1;
-                // Apply base and conditional styles
                 button.className = 'review-grid-button'; // Base class
+
+                // Style based on answered status
                 if (userAnswers[index] !== null && userAnswers[index] !== undefined) {
                     button.classList.add('review-grid-button-answered');
                 } else {
                      button.classList.add('review-grid-button-unanswered');
                 }
 
-                // Add flag visual indicator if implementing flags
-                // if (flaggedQuestions[index]) button.classList.add('border-yellow-500', 'border-2');
+                // NEW: Add flagged style
+                if (flaggedQuestions[index]) {
+                    button.classList.add('review-flagged');
+                }
 
                 button.onclick = () => {
-                    // Record time for the current question *before* navigating away from review grid click
-                    // Note: This might double-record if user clicks review grid then immediately clicks next/prev
-                    // It's safer to only record when leaving a question view for another question view or final screen.
-                    // Let's remove time recording here. Time is recorded when loading the *next* question.
-
                     reviewScreen.classList.add('hidden');
                     reviewScreen.classList.remove('flex');
                     showExamScreen(); // Go back to exam layout
-                    loadQuestion(index); // Load the selected question (this will start its timer)
+                    loadQuestion(index); // Load the selected question
                     // Timer remains stopped
                 };
                 reviewGrid.appendChild(button);
             });
+
+             // Update filter button text
+             filterFlaggedButton.textContent = filterFlagged ? 'Show All Questions' : 'Show Flagged Only';
         }
 
          function populateNavigator() {
-            navigatorGrid.innerHTML = ''; // Clear previous grid
+            navigatorGrid.innerHTML = '';
             questions.forEach((_, index) => {
                 const button = document.createElement('button');
                 button.textContent = index + 1;
                 button.classList.add('py-2', 'px-1', 'border', 'border-gray-300', 'rounded-md', 'text-center', 'transition', 'duration-150', 'ease-in-out', 'text-sm', 'hover:bg-gray-100');
-                button.dataset.questionIndex = index; // Store index
+                button.dataset.questionIndex = index;
 
-                if (userAnswers[index]) {
-                    button.classList.add('nav-answered');
-                }
-                 if (index === currentQuestionIndex) {
-                    button.classList.add('nav-current');
-                }
-                // Add flag visual indicator if implementing flags
-                // if (flaggedQuestions[index]) button.classList.add('border-yellow-500');
-
+                if (userAnswers[index]) button.classList.add('nav-answered');
+                if (index === currentQuestionIndex) button.classList.add('nav-current');
+                if (flaggedQuestions[index]) button.classList.add('nav-flagged'); // Add flagged style
 
                 button.onclick = () => {
-                    navigatorModal.classList.remove('flex'); // Hide modal
+                    navigatorModal.classList.remove('flex');
                     navigatorModal.classList.add('hidden');
-                    if (!isReviewingFromResults) { // Only allow navigation if not in review-from-results mode
-                        // Record time for the current question *before* navigating away via navigator
-                        recordTimeSpent(currentQuestionIndex);
-                        loadQuestion(index); // Load the selected question (this will start its timer)
+                    if (!isReviewingFromResults) {
+                        recordTimeSpent(currentQuestionIndex); // Record time before navigating
+                        loadQuestion(index);
                     }
                 };
                 navigatorGrid.appendChild(button);
@@ -830,20 +836,14 @@
         }
 
         function updateNavigatorButtons() {
-            // Only update if navigator grid exists
             if (!navigatorGrid) return;
             const buttons = navigatorGrid.querySelectorAll('button');
             buttons.forEach(button => {
                 const index = parseInt(button.dataset.questionIndex, 10);
-                button.classList.remove('nav-answered', 'nav-current'); // Reset styles
-                if (userAnswers[index]) {
-                    button.classList.add('nav-answered');
-                }
-                 if (index === currentQuestionIndex) {
-                    button.classList.add('nav-current');
-                }
-                // Update flag visual indicator if implementing flags
-                // button.classList.toggle('border-yellow-500', flaggedQuestions[index]);
+                button.classList.remove('nav-answered', 'nav-current', 'nav-flagged'); // Reset styles
+                if (userAnswers[index]) button.classList.add('nav-answered');
+                if (index === currentQuestionIndex) button.classList.add('nav-current');
+                if (flaggedQuestions[index]) button.classList.add('nav-flagged'); // Re-apply flagged style
             });
         }
 
@@ -853,105 +853,84 @@
              buttons.forEach(button => {
                  const index = parseInt(button.dataset.questionIndex, 10);
                  button.classList.remove('nav-current');
-                 if (index === currentQuestionIndex) {
-                     button.classList.add('nav-current');
-                 }
+                 if (index === currentQuestionIndex) button.classList.add('nav-current');
              });
          }
 
         function showResultsScreen() {
-            examEndTime = examEndTime || new Date(); // Ensure end time is set
-            // Record time for the very last question viewed before showing results
-            recordTimeSpent(currentQuestionIndex);
-            stopTimer(); // Make sure overall timer is stopped
+            examEndTime = examEndTime || new Date();
+            recordTimeSpent(currentQuestionIndex); // Record time for the last question
+            stopTimer();
 
             examScreen.classList.add('hidden');
             reviewScreen.classList.add('hidden');
             reviewScreen.classList.remove('flex');
             resultsScreen.classList.remove('hidden');
-            resultsScreen.classList.add('flex'); // Use flex for results screen layout
+            resultsScreen.classList.add('flex');
             setupScreen.classList.add('hidden');
-            appContainer.classList.add('flex', 'flex-col'); // Keep container layout
-
+            appContainer.classList.add('flex', 'flex-col');
 
             let score = 0;
-            resultsDetails.innerHTML = ''; // Clear previous results
+            resultsDetails.innerHTML = '';
 
-            questions.forEach((qData, index) => { // Use qData to avoid conflict with global 'question'
+            questions.forEach((qData, index) => {
                 const userAnswer = userAnswers[index];
-                const correctAnswer = qData.correctAnswer; // Use correctAnswer from data
-                // Ensure strict comparison and handle null/undefined user answers
+                const correctAnswer = qData.correctAnswer;
                 const isCorrect = userAnswer !== null && userAnswer !== undefined && userAnswer === correctAnswer;
+                if (isCorrect) score++;
 
-                if (isCorrect) {
-                    score++;
-                }
-
-                // Get and format time spent
                 const timeSpentMs = questionTimes[index] || 0;
                 const timeSpentSec = Math.round(timeSpentMs / 1000);
 
                 const resultDiv = document.createElement('div');
-                // Apply classes based on user's example
-                resultDiv.classList.add('result-item-clickable'); // Add base clickable class
-                resultDiv.classList.add(isCorrect ? 'correct-answer' : 'incorrect-answer'); // Add correct/incorrect class
-                resultDiv.dataset.index = index; // Store the question index
-                resultDiv.title = `Click to review Question ${index + 1}`; // Add tooltip
+                resultDiv.classList.add('result-item-clickable');
+                resultDiv.classList.add(isCorrect ? 'correct-answer' : 'incorrect-answer');
+                resultDiv.dataset.index = index;
+                resultDiv.title = `Click to review Question ${index + 1}`;
 
-                // Generate innerHTML based on user's example structure, ADDING time spent
                 resultDiv.innerHTML = `
                     <div class="flex justify-between items-start">
                         <div>
-                            <p class="font-semibold mb-1">Question ${index + 1}</p>
-                            <p class="text-sm mb-1">
+                            <p class="font-semibold mb-1">Question ${index + 1} ${flaggedQuestions[index] ? '<span class="text-xs text-amber-600">(Flagged)</span>' : ''}</p> <p class="text-sm mb-1">
                                 <strong>Your Answer:</strong> ${userAnswer !== null && userAnswer !== undefined ? userAnswer : 'Not Answered'}
                                 ${isCorrect ? '<span class="correct-indicator-text">(Correct)</span>' : `<span class="incorrect-indicator-text">(Incorrect)</span>`}
                             </p>
                             ${!isCorrect ? `<p class="text-sm"><strong>Correct Answer:</strong> ${correctAnswer}</p>` : ''}
-                             <p class="text-xs text-gray-500 mt-1">Time Spent: ${timeSpentSec}s</p> </div>
+                             <p class="text-xs text-gray-500 mt-1">Time Spent: ${timeSpentSec}s</p>
+                        </div>
                         <details class="text-xs mt-1 cursor-pointer text-right flex-shrink-0 ml-4">
                             <summary class="text-gray-500 hover:text-blue-600 font-medium">Show Q</summary>
                             <p class="mt-1 text-gray-700 text-left p-2 bg-gray-50 rounded border max-w-xs">${qData.text}</p>
                         </details>
                     </div>`;
 
-                // Add click listener to revisit the question (preventing click on details)
                 resultDiv.addEventListener('click', (event) => {
-                     if (!event.target.closest('details')) {
-                         revisitQuestionFromResults(index);
-                     }
+                     if (!event.target.closest('details')) revisitQuestionFromResults(index);
                 });
-
                 resultsDetails.appendChild(resultDiv);
             });
 
-            scoreEl.textContent = score; // Update score display
-            totalQuestionsResultsEl.textContent = questions.length; // Update total questions display
+            scoreEl.textContent = score;
+            totalQuestionsResultsEl.textContent = questions.length;
             const timeDiff = examEndTime - examStartTime;
             timeTakenEl.textContent = formatTimeDifference(timeDiff);
         }
 
-        // Function to handle revisiting a question from the results screen
         function revisitQuestionFromResults(index) {
-            // DO NOT record time when clicking from results
-            resultsScreen.classList.add('hidden'); // Hide results
+            resultsScreen.classList.add('hidden');
             resultsScreen.classList.remove('flex');
-            showExamScreen(); // Show exam screen layout
-            loadQuestion(index, true); // Load question in review mode (won't start its timer)
+            showExamScreen();
+            loadQuestion(index, true); // Load in review mode
         }
 
-        // Combined function to end exam and show results (from Review Screen)
         function endExamAndShowResults() {
-            // Time for the last viewed question was already recorded when entering review screen
-            stopTimer(); // Ensure timer stopped
+            stopTimer();
             showResultsScreen();
         }
-         // Function to handle "End Exam" click from footer (goes to review first)
-         function handleEndExamFooterClick() {
-             // Record time for the current question before going to review
-             recordTimeSpent(currentQuestionIndex);
-             stopTimer(); // Stop overall timer
-             showReviewScreen(); // Show review screen
+        function handleEndExamFooterClick() {
+             recordTimeSpent(currentQuestionIndex); // Record time before going to review
+             stopTimer();
+             showReviewScreen();
          }
 
 
@@ -961,123 +940,85 @@
             userGoal = goalInput.value.trim();
             userFocusArea = focusAreaInput.value.trim();
 
-            // Reset state for a new exam
-            timeLeft = 12 * 60; // Reset timer duration
-            userAnswers = new Array(questions.length).fill(null); // Reset answers
-            questionTimes = new Array(questions.length).fill(0); // Reset question times
-            questionStartTime = null; // Reset question start time
-            // flaggedQuestions = new Array(questions.length).fill(false); // Reset flags
-            currentQuestionIndex = 0; // Reset index
-            isReviewingFromResults = false; // Ensure not in review mode
+            // Reset state
+            timeLeft = 12 * 60;
+            userAnswers = new Array(questions.length).fill(null);
+            questionTimes = new Array(questions.length).fill(0);
+            flaggedQuestions = new Array(questions.length).fill(false); // Initialize flags
+            questionStartTime = null;
+            currentQuestionIndex = 0;
+            isReviewingFromResults = false;
+            isFilteringFlagged = false; // Reset filter state
 
-            showExamScreen(); // Transition to exam layout
+            showExamScreen();
             startTimer();
-            loadQuestion(0); // Load the first question (this will start its timer)
-            populateNavigator(); // Populate navigator on start
+            loadQuestion(0);
+            populateNavigator();
         });
 
         nextButton.addEventListener('click', showNextQuestion);
         prevButton.addEventListener('click', showPrevQuestion);
-
-        // End exam button on REVIEW screen goes directly to results
         endExamButton.addEventListener('click', endExamAndShowResults);
-        // End exam button in FOOTER BAR goes to review screen first
         endExamButtonFooter.addEventListener('click', handleEndExamFooterClick);
-
-        // Back to Results button listener
         backToResultsButton.addEventListener('click', () => {
-            isReviewingFromResults = false; // Exit review mode
-            // Do not record time when going back to results
-            showResultsScreen(); // Go back to the results screen
+            isReviewingFromResults = false;
+            showResultsScreen();
         });
-
-
         navigatorButton.addEventListener('click', () => {
-            if (isReviewingFromResults) return; // Don't open navigator when reviewing from results
-             // Record time for the current question *before* opening navigator
-             recordTimeSpent(currentQuestionIndex);
-            updateNavigatorButtons(); // Ensure buttons are styled correctly before showing
+            if (isReviewingFromResults) return;
+             recordTimeSpent(currentQuestionIndex); // Record time before opening navigator
+            updateNavigatorButtons();
             navigatorModal.classList.remove('hidden');
-            navigatorModal.classList.add('flex'); // Use flex to display and center
+            navigatorModal.classList.add('flex');
         });
-
         closeModalButton.addEventListener('click', () => {
              navigatorModal.classList.remove('flex');
              navigatorModal.classList.add('hidden');
-             // Restart timer for the current question when closing navigator
-             if (!isReviewingFromResults) {
-                 questionStartTime = Date.now();
-             }
+             if (!isReviewingFromResults) questionStartTime = Date.now(); // Restart question timer
         });
-
-        // Close modal if clicking outside the content
         navigatorModal.addEventListener('click', (event) => {
-            if (event.target === navigatorModal) {
-                 closeModalButton.click(); // Trigger close logic (including restarting timer)
-            }
+            if (event.target === navigatorModal) closeModalButton.click();
         });
 
-        // Flag button placeholder listener
-        flagButton.addEventListener('click', () => {
-            if (isReviewingFromResults) return; // Disable flagging in review mode
-            // Add flag functionality here later if needed
-            // const currentFlagState = flaggedQuestions[currentQuestionIndex];
-            // flaggedQuestions[currentQuestionIndex] = !currentFlagState;
-            // flagButton.textContent = flaggedQuestions[currentQuestionIndex] ? 'Unflag' : 'Flag for Review';
-            // flagButton.classList.toggle('bg-yellow-200', flaggedQuestions[currentQuestionIndex]); // Example visual toggle
-            // updateNavigatorButtons(); // Update navigator to show flag
-            alert('Flag for Review functionality not yet implemented.');
+        // Flag button listener
+        flagButton.addEventListener('click', toggleFlag);
+
+        // Filter button listener
+        filterFlaggedButton.addEventListener('click', () => {
+            isFilteringFlagged = !isFilteringFlagged; // Toggle filter state
+            showReviewScreen(isFilteringFlagged); // Re-render review screen with new filter state
         });
 
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-             // Only activate shortcuts if exam screen is visible and not in modal/input/review-from-results
              const isExamVisible = !examScreen.classList.contains('hidden');
              const isModalVisible = navigatorModal.classList.contains('flex');
              const isInputFocused = document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA');
 
-             // Exit if not on exam screen, or modal is open, or input focused, or reviewing from results
-             if (!isExamVisible || isModalVisible || isInputFocused || isReviewingFromResults) {
-                return;
-             }
+             if (!isExamVisible || isModalVisible || isInputFocused || isReviewingFromResults) return;
 
-             // Allow shortcuts only on exam screen for navigation/answering
              const key = e.key.toLowerCase();
-             const altOrOption = e.altKey; // Alt on Windows/Linux, Option on Mac
+             const altOrOption = e.altKey;
 
              if (altOrOption && key === 'n') {
-                 e.preventDefault(); // Prevent default browser behavior (e.g., new window)
-                 if (!nextButton.disabled) { // Check if button is enabled
-                    nextButton.click();
-                 }
+                 e.preventDefault();
+                 if (!nextButton.disabled) nextButton.click();
              } else if (altOrOption && key === 'p') {
-                 e.preventDefault(); // Prevent default browser behavior
-                 if (!prevButton.disabled) { // Check if button is enabled
-                    prevButton.click();
-                 }
+                 e.preventDefault();
+                 if (!prevButton.disabled) prevButton.click();
+             } else if (altOrOption && key === 'f') { // NEW: Alt+F for flag
+                  e.preventDefault();
+                  flagButton.click();
              } else if (['a', 'b', 'c', 'd'].includes(key)) {
                  e.preventDefault();
                  const optionIndex = ['a', 'b', 'c', 'd'].indexOf(key);
                  const optionValue = ['A', 'B', 'C', 'D'][optionIndex];
                  const currentQuestion = questions[currentQuestionIndex];
-
-                 // Check if the option index is valid for the current question
                  if (optionIndex < currentQuestion.options.length) {
-                     // Directly call handleOptionSelect, avoids potential click issues
                      handleOptionSelect(currentQuestionIndex, optionIndex, optionValue);
                  }
              }
-             // Add Alt+F for flag if implementing
-             // else if (altOrOption && key === 'f') {
-             //     e.preventDefault();
-             //     flagButton.click();
-             // }
-             // Add Alt+V for navigator if desired
-             // else if (altOrOption && key === 'v') {
-             //     e.preventDefault();
-             //     navigatorButton.click();
-             // }
         });
 
         // --- Initial Load ---
