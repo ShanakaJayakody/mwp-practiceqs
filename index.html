@@ -174,7 +174,7 @@
         /* Hide actual radio buttons */
         input[type="radio"] { display: none; }
 
-        /* --- NEW CSS FROM USER --- */
+        /* --- Result Styling --- */
         /* Result highlighting */
        .correct-answer { background-color: #dcfce7; border-left: 4px solid #22c55e; } /* Green theme */
        .incorrect-answer { background-color: #fee2e2; border-left: 4px solid #ef4444; } /* Red theme */
@@ -193,7 +193,7 @@
        /* Style for correct/incorrect text indicators in results */
        .correct-indicator-text { color: #16a34a; font-weight: 600;} /* Green-700 */
        .incorrect-indicator-text { color: #dc2626; font-weight: 600;} /* Red-600 */
-       /* --- END NEW CSS FROM USER --- */
+       /* --- END Result Styling --- */
 
 
          /* Review Grid Button Styles */
@@ -451,6 +451,8 @@
         let userGoal = '';
         let userFocusArea = '';
         let isReviewingFromResults = false; // Flag to track if reviewing from results screen
+        let questionStartTime = null; // Timestamp when the current question was loaded
+        let questionTimes = []; // Array to store time spent on each question (in ms)
         // let flaggedQuestions = new Array(questions.length).fill(false); // Flag state placeholder
 
         // --- Elements ---
@@ -528,8 +530,29 @@
             return `${minutes} min ${seconds < 10 ? '0' : ''}${seconds} sec`;
         }
 
+        /** Records the time spent on the current question */
+        function recordTimeSpent(index) {
+            // Only record time if we have a valid start time and index
+            if (questionStartTime && index >= 0 && index < questions.length) {
+                const timeSpent = Date.now() - questionStartTime;
+                // Add to existing time for this question (handles revisiting)
+                questionTimes[index] = (questionTimes[index] || 0) + timeSpent;
+                // console.log(`Recorded ${Math.round(timeSpent/1000)}s for Q${index + 1}. Total: ${Math.round(questionTimes[index]/1000)}s`); // Debug log
+            }
+            questionStartTime = null; // Reset start time after recording or if invalid
+        }
+
+
         function loadQuestion(index, reviewMode = false) {
             if (index < 0 || index >= questions.length) return;
+
+            // --- Record time for the PREVIOUS question before loading the new one ---
+            // Only record if not in review mode (i.e., during the actual exam)
+            // Check currentQuestionIndex BEFORE updating it
+            if (!isReviewingFromResults) {
+                 recordTimeSpent(currentQuestionIndex);
+            }
+            // ---------------------------------------------------------------------
 
             currentQuestionIndex = index;
             isReviewingFromResults = reviewMode; // Set the review mode flag
@@ -651,6 +674,13 @@
 
 
             updateNavigatorHighlight(); // Highlight current question in navigator if open
+
+            // --- Start timer for the NEW question ---
+            // Only start if not in review mode
+            if (!isReviewingFromResults) {
+                questionStartTime = Date.now();
+            }
+             // ---------------------------------------
         }
 
          function handleOptionSelect(questionIndex, optionIndex, optionValue) {
@@ -682,26 +712,28 @@
         function showNextQuestion() {
             // Check if not reviewing from results screen
             if (!isReviewingFromResults) {
+                // Record time for the current question *before* navigating away
+                recordTimeSpent(currentQuestionIndex);
+
                 // If it's the last question (index = length - 1)
                 if (currentQuestionIndex === questions.length - 1) {
-                    stopTimer(); // Stop timer before showing review
+                    stopTimer(); // Stop overall timer before showing review
                     showReviewScreen(); // Go to review screen
                 }
                 // Otherwise, if there are more questions
                 else if (currentQuestionIndex < questions.length - 1) {
-                    loadQuestion(currentQuestionIndex + 1); // Load next question
+                    loadQuestion(currentQuestionIndex + 1); // Load next question (this will start its timer)
                 }
-            }
-            // If reviewing from results, this button should be disabled, but add safety check
-            else {
-                console.warn("Next button clicked while in review mode from results. Should be disabled.");
             }
         }
 
 
         function showPrevQuestion() {
+             // Check if not reviewing from results screen
             if (currentQuestionIndex > 0 && !isReviewingFromResults) {
-                loadQuestion(currentQuestionIndex - 1);
+                 // Record time for the current question *before* navigating away
+                recordTimeSpent(currentQuestionIndex);
+                loadQuestion(currentQuestionIndex - 1); // Load previous question (this will start its timer)
             }
         }
 
@@ -724,7 +756,10 @@
 
 
         function showReviewScreen() {
-            stopTimer(); // Ensure timer is stopped before review
+            // Record time for the last question viewed before entering review
+            recordTimeSpent(currentQuestionIndex);
+            stopTimer(); // Ensure overall timer is stopped before review
+
             examScreen.classList.add('hidden');
             reviewScreen.classList.remove('hidden');
             reviewScreen.classList.add('flex'); // Use flex for review screen layout
@@ -748,10 +783,15 @@
                 // if (flaggedQuestions[index]) button.classList.add('border-yellow-500', 'border-2');
 
                 button.onclick = () => {
+                    // Record time for the current question *before* navigating away from review grid click
+                    // Note: This might double-record if user clicks review grid then immediately clicks next/prev
+                    // It's safer to only record when leaving a question view for another question view or final screen.
+                    // Let's remove time recording here. Time is recorded when loading the *next* question.
+
                     reviewScreen.classList.add('hidden');
                     reviewScreen.classList.remove('flex');
                     showExamScreen(); // Go back to exam layout
-                    loadQuestion(index); // Load the selected question
+                    loadQuestion(index); // Load the selected question (this will start its timer)
                     // Timer remains stopped
                 };
                 reviewGrid.appendChild(button);
@@ -780,7 +820,9 @@
                     navigatorModal.classList.remove('flex'); // Hide modal
                     navigatorModal.classList.add('hidden');
                     if (!isReviewingFromResults) { // Only allow navigation if not in review-from-results mode
-                       loadQuestion(index);
+                        // Record time for the current question *before* navigating away via navigator
+                        recordTimeSpent(currentQuestionIndex);
+                        loadQuestion(index); // Load the selected question (this will start its timer)
                     }
                 };
                 navigatorGrid.appendChild(button);
@@ -819,7 +861,9 @@
 
         function showResultsScreen() {
             examEndTime = examEndTime || new Date(); // Ensure end time is set
-            stopTimer(); // Make sure timer is stopped
+            // Record time for the very last question viewed before showing results
+            recordTimeSpent(currentQuestionIndex);
+            stopTimer(); // Make sure overall timer is stopped
 
             examScreen.classList.add('hidden');
             reviewScreen.classList.add('hidden');
@@ -843,6 +887,10 @@
                     score++;
                 }
 
+                // Get and format time spent
+                const timeSpentMs = questionTimes[index] || 0;
+                const timeSpentSec = Math.round(timeSpentMs / 1000);
+
                 const resultDiv = document.createElement('div');
                 // Apply classes based on user's example
                 resultDiv.classList.add('result-item-clickable'); // Add base clickable class
@@ -850,7 +898,7 @@
                 resultDiv.dataset.index = index; // Store the question index
                 resultDiv.title = `Click to review Question ${index + 1}`; // Add tooltip
 
-                // Generate innerHTML based on user's example structure
+                // Generate innerHTML based on user's example structure, ADDING time spent
                 resultDiv.innerHTML = `
                     <div class="flex justify-between items-start">
                         <div>
@@ -860,10 +908,11 @@
                                 ${isCorrect ? '<span class="correct-indicator-text">(Correct)</span>' : `<span class="incorrect-indicator-text">(Incorrect)</span>`}
                             </p>
                             ${!isCorrect ? `<p class="text-sm"><strong>Correct Answer:</strong> ${correctAnswer}</p>` : ''}
-                        </div>
+                             <p class="text-xs text-gray-500 mt-1">Time Spent: ${timeSpentSec}s</p> </div>
                         <details class="text-xs mt-1 cursor-pointer text-right flex-shrink-0 ml-4">
                             <summary class="text-gray-500 hover:text-blue-600 font-medium">Show Q</summary>
-                            <p class="mt-1 text-gray-700 text-left p-2 bg-gray-50 rounded border max-w-xs">${qData.text}</p> </details>
+                            <p class="mt-1 text-gray-700 text-left p-2 bg-gray-50 rounded border max-w-xs">${qData.text}</p>
+                        </details>
                     </div>`;
 
                 // Add click listener to revisit the question (preventing click on details)
@@ -884,20 +933,24 @@
 
         // Function to handle revisiting a question from the results screen
         function revisitQuestionFromResults(index) {
+            // DO NOT record time when clicking from results
             resultsScreen.classList.add('hidden'); // Hide results
             resultsScreen.classList.remove('flex');
             showExamScreen(); // Show exam screen layout
-            loadQuestion(index, true); // Load question in review mode
+            loadQuestion(index, true); // Load question in review mode (won't start its timer)
         }
 
-        // Combined function to end exam and show results
+        // Combined function to end exam and show results (from Review Screen)
         function endExamAndShowResults() {
-            stopTimer();
+            // Time for the last viewed question was already recorded when entering review screen
+            stopTimer(); // Ensure timer stopped
             showResultsScreen();
         }
-         // Function to handle "End Exam" click from footer - goes to review first
+         // Function to handle "End Exam" click from footer (goes to review first)
          function handleEndExamFooterClick() {
-             stopTimer(); // Stop timer
+             // Record time for the current question before going to review
+             recordTimeSpent(currentQuestionIndex);
+             stopTimer(); // Stop overall timer
              showReviewScreen(); // Show review screen
          }
 
@@ -911,13 +964,15 @@
             // Reset state for a new exam
             timeLeft = 12 * 60; // Reset timer duration
             userAnswers = new Array(questions.length).fill(null); // Reset answers
+            questionTimes = new Array(questions.length).fill(0); // Reset question times
+            questionStartTime = null; // Reset question start time
             // flaggedQuestions = new Array(questions.length).fill(false); // Reset flags
             currentQuestionIndex = 0; // Reset index
             isReviewingFromResults = false; // Ensure not in review mode
 
             showExamScreen(); // Transition to exam layout
             startTimer();
-            loadQuestion(0); // Load the first question
+            loadQuestion(0); // Load the first question (this will start its timer)
             populateNavigator(); // Populate navigator on start
         });
 
@@ -932,12 +987,15 @@
         // Back to Results button listener
         backToResultsButton.addEventListener('click', () => {
             isReviewingFromResults = false; // Exit review mode
+            // Do not record time when going back to results
             showResultsScreen(); // Go back to the results screen
         });
 
 
         navigatorButton.addEventListener('click', () => {
             if (isReviewingFromResults) return; // Don't open navigator when reviewing from results
+             // Record time for the current question *before* opening navigator
+             recordTimeSpent(currentQuestionIndex);
             updateNavigatorButtons(); // Ensure buttons are styled correctly before showing
             navigatorModal.classList.remove('hidden');
             navigatorModal.classList.add('flex'); // Use flex to display and center
@@ -946,13 +1004,16 @@
         closeModalButton.addEventListener('click', () => {
              navigatorModal.classList.remove('flex');
              navigatorModal.classList.add('hidden');
+             // Restart timer for the current question when closing navigator
+             if (!isReviewingFromResults) {
+                 questionStartTime = Date.now();
+             }
         });
 
         // Close modal if clicking outside the content
         navigatorModal.addEventListener('click', (event) => {
             if (event.target === navigatorModal) {
-                 navigatorModal.classList.remove('flex');
-                 navigatorModal.classList.add('hidden');
+                 closeModalButton.click(); // Trigger close logic (including restarting timer)
             }
         });
 
